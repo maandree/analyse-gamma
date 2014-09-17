@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+# -*- python -*-
+'''
+analyse-gamma — Gamma adjustment analysis tool
+Copyright © 2014  Mattias Andrée (maandree@member.fsf.org)
+
+This library is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this library.  If not, see <http://www.gnu.org/licenses/>.
+'''
+
+import sys
+import math
+
+import libgamma
+
+
+class analyse_channel:
+    def __init__(self, ramp):
+        self.increasing          = all(ramp[i - 1] <= ramp[i] for i in range(1, len(ramp)))
+        self.strictly_increasing = all(ramp[i - 1] <  ramp[i] for i in range(1, len(ramp)))
+        self.decreasing          = all(ramp[i - 1] >= ramp[i] for i in range(1, len(ramp)))
+        self.strictly_decreasing = all(ramp[i - 1] >  ramp[i] for i in range(1, len(ramp)))
+        
+        self.brightness = min(ramp)
+        self.contrast = max(ramp)
+        
+        sorted_ramp = sorted(ramp)
+        middle = sorted_ramp[len(sorted_ramp) // 2]
+        if len(ramp) % 2 == 0:
+            middle += sorted_ramp[len(sorted_ramp) // 2 - 1]
+            middle /= 2
+        middle = (middle - self.brightness) / (self.contrast - self.brightness);
+        self.gamma = -math.log(2) / math.log(middle)
+    
+    def __str__(self):
+        rc = []
+        
+        if self.increasing and self.decreasing:
+            rc.append('flat curve')
+        elif self.strictly_increasing:
+            rc.append('strictly increasing curve')
+        elif self.increasing:
+            rc.append('increasing curve')
+        elif self.strictly_decreasing:
+            rc.append('strictly decreasing curve')
+        elif self.decreasing:
+            rc.append('decreasing curve')
+        else:
+            rc.append('non-monotonic curve')
+        
+        rc.append('brightness: %f' % self.brightness)
+        rc.append('contrast: %f' % self.contrast)
+        rc.append('gamma: %f' % self.gamma)
+        
+        return '\n'.join(rc)
+
+
+def print_ramps(all_ramps):
+    for part, crtc, info, ramps in all_ramps:
+        print('screen=%i, crtc=%i' % (part, crtc), end = '');
+        if (not info.connector_name_error) and info.connector_name:
+            print(', connector=%s' % info.connector_name, end = '');
+        print()
+        r_analysis = analyse_channel(ramps.red)
+        g_analysis = analyse_channel(ramps.green)
+        b_analysis = analyse_channel(ramps.blue)
+        print('  red channel:')
+        print('\n'.join('    ' + line for line in str(r_analysis).split('\n')))
+        print('  green channel:')
+        print('\n'.join('    ' + line for line in str(g_analysis).split('\n')))
+        print('  blue channel:')
+        print('\n'.join('    ' + line for line in str(b_analysis).split('\n')))
+        print()
+
+
+methods = libgamma.list_methods(0)
+if len(methods) == 0:
+    print('Cannot find any backend for reading the current gamma ramps.', file = sys.stderr)
+    sys.exit(1)
+
+for method in methods:
+    all_ramps = []
+    can_read = True
+    site = libgamma.Site(method)
+    for part_i in range(site.partitions_available):
+        if not can_read:
+            break
+        part = libgamma.Partition(site, part_i)
+        for crtc_i in range(part.crtcs_available):
+            crtc = libgamma.CRTC(part, crtc_i)
+            (info, _) = crtc.information(~0)
+            r, g, b = info.red_gamma_size, info.green_gamma_size, info.blue_gamma_size
+            if info.gamma_size_error:
+                del crtc
+                can_read = False
+                break
+            ramps = libgamma.GammaRamps(r, g, b, depth = -2)
+            try:
+                crtc.get_gamma(ramps)
+                all_ramps.append((part_i, crtc_i, info, ramps))
+            except:
+                can_read = False
+            del ramps
+            del crtc
+        del part
+    del site
+    if can_read:
+        print_ramps(all_ramps)
+        del all_ramps
+        sys.exit(0)
+    del all_ramps
+
+print('Cannot read current gamma ramps.', file = sys.stderr)
+sys.exit(1)
