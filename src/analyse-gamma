@@ -307,8 +307,14 @@ def print_ramps(all_ramps):
         ((close_x, close_y), close_t) = CMF_10DEG_XY[test[0][0]], test[0][0]
         ((far_x, far_y), far_t)       = CMF_10DEG_XY[test[1][0]], test[1][0]
         f = lambda x : x * CMF_10DEG_STEP + CMF_10DEG_MIN
-        temp_x = (x - far_x) / (close_x - far_x) + far_t
-        temp_y = (y - far_y) / (close_y - far_y) + far_t
+        if close_x == far_x:
+            temp_x = close_x
+        else:
+            temp_x = (x - far_x) / (close_x - far_x) + far_t
+        if close_y == far_y:
+            temp_y = close_y
+        else:
+            temp_y = (y - far_y) / (close_y - far_y) + far_t
         temp = f((temp_x + temp_y) / 2)
         temp_error = abs(temp_x - temp_y)
         
