@@ -193,32 +193,6 @@ def srgb_to_ciexyy(r, g, b):
     return ciexyz_to_ciexyy(*linear_to_ciexyz(*standard_to_linear(r, g, b)))
 
 
-class analyse_channel:
-    def __init__(self, ramp):
-        # Analyse gamma correction
-        middle = ramp[len(ramp) // 2]
-        if len(ramp) % 2 == 0:
-            middle += ramp[len(ramp) // 2 - 1]
-            middle /= 2
-        middle = (middle - self.brightness) / (self.contrast - self.brightness);
-        self.gamma = -math.log(2) / math.log(middle)
-        
-        # Calculate analysis error
-        n = len(ramp) - 1
-        error = [abs(x - i / n) for i, x in enumerate(ramp)]
-        error = sum(error) / len(ramp)
-        self.analysis_error = error
-    
-    
-    def __str__(self):
-        rc = []
-        
-        rc.append('gamma:          %1.4f' % self.gamma)
-        rc.append('analysis error: %1.4f' % self.analysis_error)
-        
-        return '\n'.join(rc)
-
-
 def analyse_monotonicity(ramp):
     increasing          = all(ramp[i - 1] <= ramp[i] for i in range(1, len(ramp)))
     strictly_increasing = all(ramp[i - 1] <  ramp[i] for i in range(1, len(ramp)))
