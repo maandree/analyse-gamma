@@ -1,0 +1,17 @@
+Currently solved equation:
+
+                       1 / gamma_c
+  (x_c ⋅ temperature_c)            ⋅ (contrast − brightness_c) + brightness_c = y_c,
+
+  0 ≤ temperature_c ≤ 1, ∃ i : temperature_i = 1,
+  gamma_c > 0
+
+But we also need brilliance:
+
+                                    1 / gamma_c
+  (x_c ⋅ brilliance ⋅ temperature_c)            ⋅ (contrast − brightness_c) + brightness_c = y_c,
+  
+  0 ≤ temperature_c ≤ 1, ∃ i : temperature_i = 1,
+  gamma_c > 0,
+  0 ≤ brilliance ≤ 1
+
