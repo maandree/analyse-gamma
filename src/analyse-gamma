@@ -26,14 +26,17 @@ import libgamma
 
 class analyse_channel:
     def __init__(self, ramp):
+        # Analyse monotonicity and reverseness
         self.increasing          = all(ramp[i - 1] <= ramp[i] for i in range(1, len(ramp)))
         self.strictly_increasing = all(ramp[i - 1] <  ramp[i] for i in range(1, len(ramp)))
         self.decreasing          = all(ramp[i - 1] >= ramp[i] for i in range(1, len(ramp)))
         self.strictly_decreasing = all(ramp[i - 1] >  ramp[i] for i in range(1, len(ramp)))
         
+        # Analyse brightness and contrast
         self.brightness = min(ramp)
         self.contrast = max(ramp)
         
+        # Analyse gamma correction
         sorted_ramp = sorted(ramp)
         middle = sorted_ramp[len(sorted_ramp) // 2]
         if len(ramp) % 2 == 0:
@@ -41,6 +44,17 @@ class analyse_channel:
             middle /= 2
         middle = (middle - self.brightness) / (self.contrast - self.brightness);
         self.gamma = -math.log(2) / math.log(middle)
+        
+        # Cancel out brightness, contrast and gamma
+        f = lambda x : (x - self.brightness) / (self.contrast - self.brightness)
+        sorted_ramp = [f(x) ** self.gamma for x in sorted_ramp]
+        
+        # Calculate analysis error
+        n = len(sorted_ramp) - 1
+        error = [abs(x - i / n) for i, x in enumerate(sorted_ramp)]
+        error = sum(error) / len(sorted_ramp)
+        self.analysis_error = error
+    
     
     def __str__(self):
         rc = []
@@ -58,9 +72,10 @@ class analyse_channel:
         else:
             rc.append('non-monotonic curve')
         
-        rc.append('brightness: %f' % self.brightness)
-        rc.append('contrast: %f' % self.contrast)
-        rc.append('gamma: %f' % self.gamma)
+        rc.append('brightness:     %1.4f' % self.brightness)
+        rc.append('contrast:       %1.4f' % self.contrast)
+        rc.append('gamma:          %1.4f' % self.gamma)
+        rc.append('analysis error: %1.4f' % self.analysis_error)
         
         return '\n'.join(rc)
 
