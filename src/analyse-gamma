@@ -243,22 +243,20 @@ def print_ramps(all_ramps):
         ramps.green[:] = sorted(ramps.green)
         ramps.blue[:]  = sorted(ramps.blue)
         
-        # Pick out the output values for 0.25, 0.50 and 0.75
-        # we assume the number of stops is a multiple of 4
-        f = lambda r, i : (r[len(r) * i // 4] + r[len(r) * i // 4 - 1]) / 2
-        r_1, r_2, r_3 = f(ramps.red,   1), f(ramps.red,   2), f(ramps.red,   3)
-        g_1, g_2, g_3 = f(ramps.green, 1), f(ramps.green, 2), f(ramps.green, 3)
-        b_1, b_2, b_3 = f(ramps.blue,  1), f(ramps.blue,  2), f(ramps.blue,  3)
-        # Store the select stops
-        A, B, C = 1 / 4, 2 / 4, 3 / 4
+        # Pick out the output values for 0, 0,5 and 1
+        # we assume the number of stops is a multiple of 2
+        mid = lambda r : (r[len(r) // 2] + r[len(r) // 2 - 1]) / 2
+        r_1, r_2, r_3 = min(ramps.red),   mid(ramps.red),   max(ramps.red)
+        g_1, g_2, g_3 = min(ramps.green), mid(ramps.green), max(ramps.green)
+        b_1, b_2, b_3 = min(ramps.blue),  mid(ramps.blue),  max(ramps.blue)
         
         def solve_gamma(a, b, c):
             '''
             Calculate the gamma correction for a ramp
             
-            @param   a:float  The value at the stop at `A`
-            @param   b:float  The value at the stop at `B`
-            @param   c:float  The value at the stop at `C`
+            @param   a:float  The value at the stop at 0
+            @param   b:float  The value at the stop at 0,5
+            @param   c:float  The value at the stop at 1
             @return  :float   The gamma correction for the ramp
             '''
             
@@ -274,51 +272,51 @@ def print_ramps(all_ramps):
             #    This gives us, y_B = b
             #    This gives us, y_C = c
             #  
-            #  Substitute: g' = 1 / gamma   (We will write g' as g_ in the code.)
+            #  Substitute: g' = 1 / gamma
             #  
             #  
             #  We now have three equations:
             #  
             #           g'
-            #    (A ⋅ t)   ⋅ (contrast − brightness) + brightness = a
+            #    (A ⋅ u)   ⋅ (contrast − brightness) + brightness = a
             #    
             #           g'
-            #    (B ⋅ t)   ⋅ (contrast − brightness) + brightness = b
+            #    (B ⋅ u)   ⋅ (contrast − brightness) + brightness = b
             #    
             #           g'
-            #    (C ⋅ t)   ⋅ (contrast − brightness) + brightness = c
+            #    (C ⋅ u)   ⋅ (contrast − brightness) + brightness = c
             #  
             #  
-            #  We want to calculate g', so we need to eleminate contrast, brightness and t:
+            #  We want to calculate g', so we need to eleminate contrast, brightness and u:
             #  
             #  
-            #           g'                                     g'
-            #    (B ⋅ t)   ⋅ (contrast − brightness) − (A ⋅ t)   ⋅ (contrast − brightness) = b - a
+            #           g'                                    g'
+            #    (B ⋅ u)   ⋅ (contrast − brightness) − (A ⋅ u)   ⋅ (contrast − brightness) = b - a
             #    
-            #           g'                                     g'
-            #    (C ⋅ t)   ⋅ (contrast − brightness) − (B ⋅ t)   ⋅ (contrast − brightness) = c - b
+            #           g'                                    g'
+            #    (C ⋅ u)   ⋅ (contrast − brightness) − (B ⋅ u)   ⋅ (contrast − brightness) = c - b
             #  
             #  
             #  
-            #           g'                                     g'
-            #    (B ⋅ t)   ⋅ (contrast − brightness) − (A ⋅ t)   ⋅ (contrast − brightness)   b - a
+            #           g'                                    g'
+            #    (B ⋅ u)   ⋅ (contrast − brightness) − (A ⋅ u)   ⋅ (contrast − brightness)   b - a
             #    ───────────────────────────────────────────────────────────────────────── = ─────
-            #           g'                                     g'                            c - b
-            #    (C ⋅ t)   ⋅ (contrast − brightness) − (B ⋅ t)   ⋅ (contrast − brightness)
+            #           g'                                    g'                             c - b
+            #    (C ⋅ u)   ⋅ (contrast − brightness) − (B ⋅ u)   ⋅ (contrast − brightness)
             #  
             #  
             #           g'          g'
-            #    (B ⋅ t)   − (A ⋅ t)     b - a
+            #    (B ⋅ u)   − (A ⋅ u)     b - a
             #    ───────────────────── = ─────
             #           g'          g'   c - b
-            #    (C ⋅ t)   − (B ⋅ t)
+            #    (C ⋅ u)   − (B ⋅ u)
             #  
             #  
             #     g' g'    g'  g'
-            #    B  t   − A  t      b - a
+            #    B  u   − A  u      b - a
             #    ──────────────── = ─────
             #     g' g'    g' g'    c - b
-            #    C  t   − B  t
+            #    C  u   − B  u
             #  
             #  
             #     g'    g'
@@ -326,37 +324,58 @@ def print_ramps(all_ramps):
             #    ───────── = ───── = {substitution} = y
             #     g'    g'   c - b
             #    C   − B
-            #    
-            #    This equation is really difficult to solve algebraically
-            #    (if possible), therefore we will solve it numerically.
+            #  
+            #  
+            #  Select A = 0, B = ½, C = 1.
+            #  
+            #  
+            #     g'    g'
+            #    ½   − 0
+            #    ───────── = y
+            #     g'    g'
+            #    1   − ½
+            #  
+            #  
+            #       g'
+            #      ½
+            #    ─────── = y
+            #         g'
+            #    1 − ½
+            #  
+            #  
+            #         g'
+            #    1 − ½      −1
+            #    ─────── = y
+            #       g'
+            #      ½
+            #  
+            #  
+            #     1         −1
+            #    ─── − 1 = y
+            #     g'
+            #    ½
+            #  
+            #  
+            #     1     −1
+            #    ─── = y   + 1
+            #     g'
+            #    ½
+            #  
+            #  
+            #     g'  ⎛ −1    ⎞−1
+            #    ½  = ⎝y   + 1⎠
+            #  
+            #  
+            #             ⎛ −1    ⎞−1
+            #    g' = log ⎝y   + 1⎠
+            #            ½
             
             try:
                 y = (b - a) / (c - b)
             except:
                 return None
-            f = lambda g_ : (B ** g_ - A ** g_) / (C ** g_ - B ** g_)
-            if y == 1:
-                return 1
-            if y > 1:
-                g_max = 1
-                g_min = g_max / 2
-                while y >= f(g_min):
-                    g_min /= 2
-            else:
-                g_min = 1
-                g_max = g_min * 2
-                while y <= f(g_max):
-                    g_max *= 2
-            for i in range(100):
-                g = (g_min + g_max) / 2
-                t = f(g)
-                if t == y:
-                    break
-                if y < t:
-                    g_min = g
-                else:
-                    g_max = g
-            return round(1 / g, 2) ## Programs do not allow higher precision
+            g = 1 / math.log(1 / (1 / y + 1), 1 / 2)
+            return round(g, 2) ## Programs do not allow higher precision
         
         # Get the gamma correction
         r_gamma = solve_gamma(r_1, r_2, r_3)
