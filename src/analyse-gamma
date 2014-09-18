@@ -121,8 +121,19 @@ CMF_10DEG_XY = [(0.6472, 0.3506),  (0.6348, 0.3612),  (0.6225, 0.3710),  (0.6104
                 (0.2462, 0.2492),  (0.2462, 0.2492),  (0.2462, 0.2491),  (0.2462, 0.2491),
                 (0.2461, 0.2491),  (0.2461, 0.2490),  (0.2461, 0.2490),  (0.2461, 0.2490),
                 (0.2460, 0.2490),  (0.2460, 0.2489),  (0.2460, 0.2489)]
+'''
+x–y pairs, in CIE xyY, different colour temperatures
+'''
+
 CMF_10DEG_STEP = 100
+'''
+The temperature difference, in Kelvin, at each steop in `CMF_10DEG_XY`
+'''
+
 CMF_10DEG_MIN = 1000
+'''
+The temperature, in Kelvin, of the first element in `CMF_10DEG_XY`
+'''
 
 
 LINEAR_TO_CIEXYZ_MATRIX = [[0.4124564, 0.3575761, 0.1804375],
@@ -194,6 +205,14 @@ def srgb_to_ciexyy(r, g, b):
 
 
 def analyse_monotonicity(ramp):
+    '''
+    Analyse whether a gamma ramp is monotonic, weakly or strictly,
+    and whether it is increasing or decreasing. The colour is inverted
+    if the ramp is decreasing.
+    
+    @param   ramp:itr<float>  The ramp
+    @return  :str             A decription of the ramp
+    '''
     increasing          = all(ramp[i - 1] <= ramp[i] for i in range(1, len(ramp)))
     strictly_increasing = all(ramp[i - 1] <  ramp[i] for i in range(1, len(ramp)))
     decreasing          = all(ramp[i - 1] >= ramp[i] for i in range(1, len(ramp)))
@@ -214,26 +233,108 @@ def print_ramps(all_ramps):
             print(', connector=%s' % info.connector_name, end = '');
         print()
         
+        # Analyse ramp style
         r_monotonicity = analyse_monotonicity(ramps.red)
         g_monotonicity = analyse_monotonicity(ramps.green)
         b_monotonicity = analyse_monotonicity(ramps.blue)
         
+        # Sort the values in the ramps so we cannot analyse its parameters
         ramps.red[:]   = sorted(ramps.red)
         ramps.green[:] = sorted(ramps.green)
         ramps.blue[:]  = sorted(ramps.blue)
         
+        # Pick out the output values for 0.25, 0.50 and 0.75
+        # we assume the number of stops is a multiple of 4
         f = lambda r, i : (r[len(r) * i // 4] + r[len(r) * i // 4 - 1]) / 2
         r_1, r_2, r_3 = f(ramps.red,   1), f(ramps.red,   2), f(ramps.red,   3)
         g_1, g_2, g_3 = f(ramps.green, 1), f(ramps.green, 2), f(ramps.green, 3)
         b_1, b_2, b_3 = f(ramps.blue,  1), f(ramps.blue,  2), f(ramps.blue,  3)
+        # Store the select stops
         A, B, C = 1 / 4, 2 / 4, 3 / 4
         
         def solve_gamma(a, b, c):
+            '''
+            Calculate the gamma correction for a ramp
+            
+            @param   a:float  The value at the stop at `A`
+            @param   b:float  The value at the stop at `B`
+            @param   c:float  The value at the stop at `C`
+            @return  :float   The gamma correction for the ramp
+            '''
+            
+            # Some maths:
+            # 
+            #         1 / gamma
+            #  (x ⋅ t)          ⋅ (contrast − brightness) + brightness = y_x
+            #  
+            #    (t is a temperature parameter.)
+            #  
+            #  Select x = {A, B, C}
+            #    This gives us, y_A = a
+            #    This gives us, y_B = b
+            #    This gives us, y_C = c
+            #  
+            #  Substitute: g' = 1 / gamma   (We will write g' as g_ in the code.)
+            #  
+            #  
+            #  We now have three equations:
+            #  
+            #           g'
+            #    (A ⋅ t)   ⋅ (contrast − brightness) + brightness = a
+            #    
+            #           g'
+            #    (B ⋅ t)   ⋅ (contrast − brightness) + brightness = b
+            #    
+            #           g'
+            #    (C ⋅ t)   ⋅ (contrast − brightness) + brightness = c
+            #  
+            #  
+            #  We want to calculate g', so we need to eleminate contrast, brightness and t:
+            #  
+            #  
+            #           g'                                     g'
+            #    (B ⋅ t)   ⋅ (contrast − brightness) − (A ⋅ t)   ⋅ (contrast − brightness) = b - a
+            #    
+            #           g'                                     g'
+            #    (C ⋅ t)   ⋅ (contrast − brightness) − (B ⋅ t)   ⋅ (contrast − brightness) = c - b
+            #  
+            #  
+            #  
+            #           g'                                     g'
+            #    (B ⋅ t)   ⋅ (contrast − brightness) − (A ⋅ t)   ⋅ (contrast − brightness)   b - a
+            #    ───────────────────────────────────────────────────────────────────────── = ─────
+            #           g'                                     g'                            c - b
+            #    (C ⋅ t)   ⋅ (contrast − brightness) − (B ⋅ t)   ⋅ (contrast − brightness)
+            #  
+            #  
+            #           g'          g'
+            #    (B ⋅ t)   − (A ⋅ t)     b - a
+            #    ───────────────────── = ─────
+            #           g'          g'   c - b
+            #    (C ⋅ t)   − (B ⋅ t)
+            #  
+            #  
+            #     g' g'    g'  g'
+            #    B  t   − A  t      b - a
+            #    ──────────────── = ─────
+            #     g' g'    g' g'    c - b
+            #    C  t   − B  t
+            #  
+            #  
+            #     g'    g'
+            #    B   − A     b - a
+            #    ───────── = ───── = {substitution} = y
+            #     g'    g'   c - b
+            #    C   − B
+            #    
+            #    This equation is really difficult to solve algebraically
+            #    (if possible), therefore we will solve it numerically.
+            
             try:
                 y = (b - a) / (c - b)
             except:
                 return None
-            f = lambda x : (B ** x - A ** x) / (C ** x - B ** x)
+            f = lambda g_ : (B ** g_ - A ** g_) / (C ** g_ - B ** g_)
             if y == 1:
                 return 1
             if y > 1:
@@ -257,10 +358,12 @@ def print_ramps(all_ramps):
                     g_max = g
             return round(1 / g, 2) ## Programs do not allow higher precision
         
+        # Get the gamma correction
         r_gamma = solve_gamma(r_1, r_2, r_3)
         g_gamma = solve_gamma(g_1, g_2, g_3)
         b_gamma = solve_gamma(b_1, b_2, b_3)
         
+        # Get the brightness correction
         r_brightness = min(ramps.red)
         g_brightness = min(ramps.green)
         b_brightness = min(ramps.blue)
@@ -270,7 +373,7 @@ def print_ramps(all_ramps):
         b_max = (max(ramps.blue)  - b_brightness) ** b_gamma
         
         # Assume constrast = 1 to determine for which
-        # channels the temperature modifier is 1, so
+        # channels the temperature parameter is 1, so
         # we can get the real contrast which we assume
         # is shared for all channels.
         r_off = ((1 - r_brightness) ** r_gamma) / r_max
