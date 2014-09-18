@@ -368,6 +368,72 @@ def print_ramps(all_ramps):
         g_brightness = min(ramps.green)
         b_brightness = min(ramps.blue)
         
+        # Some more maths:
+        # 
+        #          1 / gamma
+        #   (x ⋅ t)          ⋅ (contrast − brightness) + brightness = y_x
+        #   
+        #          1 / gamma
+        #   (x ⋅ t)          ⋅ (contrast − brightness) = y_x − brightness
+        #   
+        #                                    gamma
+        #   (x ⋅ t) ⋅ (contrast − brightness)
+        #   ────────────────────────────────────── = 1
+        #                            gamma
+        #          (y_x − brightness)
+        #  
+        #                                  gamma
+        #           (contrast − brightness)
+        #   (x ⋅ t) ──────────────────────────── = 1
+        #                               gamma
+        #             (y_x − brightness)
+        #  
+        #   Select x = 1.
+        #   
+        #                            gamma
+        #     (contrast − brightness)
+        #   t ──────────────────────────── = 1
+        #                          gamma
+        #        (y₁ − brightness)
+        #   
+        #   We have to unknowns here, t (0 ≤ t ≤ 1) and constrast.
+        #   We will assume constrast is identical for all channels,
+        #   Otherwise we cannot speak intelligently.
+        #   
+        #                          gamma
+        #   (contrast − brightness)
+        #   ──────────────────────────── = t⁻¹
+        #                       gamma
+        #      (y₁ − brightness)
+        #   
+        #   t⁻¹ increases as t decreases, when t = 1, t⁻¹ is
+        #   also 1, and we know that this is true for at least
+        #   one channel. If we fix constrast to an arbitrary
+        #   value and t to 1, then this expression should
+        #   hold true.
+        #   
+        #   Once we have identified a channel for which t = 1,
+        #   we can reexamine the original equation and solve
+        #   it in respect to contrast.
+        #   
+        #          1 / gamma
+        #   (x ⋅ t)          ⋅ (contrast − brightness) + brightness = y_x
+        #   
+        #          1 / gamma
+        #   (x ⋅ 1)          ⋅ (contrast − brightness) + brightness = y_x
+        #   
+        #    1 / gamma
+        #   x          ⋅ (contrast − brightness) + brightness = y_x
+        #   
+        #   Select x = 1.
+        #   
+        #    1 / gamma
+        #   1          ⋅ (contrast − brightness) + brightness = y_x
+        #   
+        #   contrast − brightness + brightness = y_x
+        # 
+        #   contrast = y_x
+        
         r_max = (max(ramps.red)   - r_brightness) ** r_gamma
         g_max = (max(ramps.green) - g_brightness) ** g_gamma
         b_max = (max(ramps.blue)  - b_brightness) ** b_gamma
