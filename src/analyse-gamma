@@ -554,3 +554,4 @@ for method in methods:
 
 print('Cannot read current gamma ramps.', file = sys.stderr)
 sys.exit(1)
+
