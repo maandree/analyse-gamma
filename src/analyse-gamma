@@ -481,17 +481,19 @@ def print_ramps(all_ramps):
         # 
         #   contrast = y_x
         
-        r_max = (max(ramps.red)   - r_brightness) ** r_gamma
-        g_max = (max(ramps.green) - g_brightness) ** g_gamma
-        b_max = (max(ramps.blue)  - b_brightness) ** b_gamma
+        R = lambda x : (x if x else 1)
+        
+        r_max = (max(ramps.red)   - r_brightness) ** R(r_gamma)
+        g_max = (max(ramps.green) - g_brightness) ** R(g_gamma)
+        b_max = (max(ramps.blue)  - b_brightness) ** R(b_gamma)
         
         # Assume constrast = 1 to determine for which
         # channels the temperature parameter is 1, so
         # we can get the real contrast which we assume
         # is shared for all channels.
-        r_off = ((1 - r_brightness) ** r_gamma) / r_max
-        g_off = ((1 - g_brightness) ** g_gamma) / g_max
-        b_off = ((1 - b_brightness) ** b_gamma) / b_max
+        r_off = ((1 - r_brightness) ** R(r_gamma)) / R(r_max)
+        g_off = ((1 - g_brightness) ** R(g_gamma)) / R(g_max)
+        b_off = ((1 - b_brightness) ** R(b_gamma)) / R(b_max)
         
         min_off = min([r_off, g_off, b_off])
         if   r_off == min_off:  contrast = max(ramps.red)
@@ -499,7 +501,7 @@ def print_ramps(all_ramps):
         else:                   contrast = max(ramps.blue)
         
         # Cancel out brightness, contrast and gamma, leave in temperature
-        f = lambda y, b, g : ((y - b) / (contrast - b)) ** g
+        f = lambda y, b, g : ((y - b) / R(contrast - b)) ** R(g)
         ramps.red[:]   = [f(y, r_brightness, r_gamma) for y in ramps.red]
         ramps.green[:] = [f(y, g_brightness, g_gamma) for y in ramps.green]
         ramps.blue[:]  = [f(y, b_brightness, b_gamma) for y in ramps.blue]
@@ -508,9 +510,9 @@ def print_ramps(all_ramps):
         r_max, r_n = max(ramps.red),   len(ramps.red)
         g_max, g_n = max(ramps.green), len(ramps.green)
         b_max, b_n = max(ramps.blue),  len(ramps.blue)
-        r_error = [x / r_max - i / r_n for i, x in enumerate(ramps.red)]
-        g_error = [x / g_max - i / g_n for i, x in enumerate(ramps.green)]
-        b_error = [x / b_max - i / b_n for i, x in enumerate(ramps.blue)]
+        r_error = [x / R(r_max) - i / r_n for i, x in enumerate(ramps.red)]
+        g_error = [x / R(g_max) - i / g_n for i, x in enumerate(ramps.green)]
+        b_error = [x / R(b_max) - i / b_n for i, x in enumerate(ramps.blue)]
         r_error = sum([x ** 2 for x in r_error]) / len(ramps.red)
         g_error = sum([x ** 2 for x in g_error]) / len(ramps.green)
         b_error = sum([x ** 2 for x in b_error]) / len(ramps.blue)
