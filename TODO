@@ -15,3 +15,11 @@ But we also need brilliance:
   gamma_c > 0,
   0 ≤ brilliance ≤ 1
 
+
+It should be possible to give hints. For example:
+*  All channels have the same contrast/brightness/gamma
+*  The colour temperature is 6500 K
+*  The gamma/contrast is 1:1:1
+*  The brightness is 1:1:1
+*  The brilliance is 1
+
