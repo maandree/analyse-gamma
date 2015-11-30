@@ -3,9 +3,11 @@ RUNTIME DEPENDENCIES:
 	python3
 	pylibgamma>=1.1
 
+
 BUILD DEPENDENCIES:
 
-	texinfo (opt-out: for info, pdf, dvi and info manual)
+	texinfo, make, coreutils (opt-out: for info, pdf, dvi and info manual)
+
 
 INSTALL DEPENDENCIES:
 
