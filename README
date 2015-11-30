@@ -1,2 +1,17 @@
-Gamma adjustment analysis tool.
+NAME
+	analyse-gamma - Gamma adjustment analysis tool
+
+SYNOPSIS
+	analyse-gamma
+
+DESCRIPTION
+	Analyses the gamma ramps on your CRTC:s, and outputs the
+	results to stdout.
+
+RATIONALE
+	See <https://github.com/jonls/redshift/issues/117>.
+
+SEE ALSO
+	crt-calibrator(1), xgamma(1), xrandr(1), redshift(1),
+	blueshift(1)
 
