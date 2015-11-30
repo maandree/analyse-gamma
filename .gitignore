@@ -1,12 +1,14 @@
 _/
-/bin
-/obj
+/bin/
+/obj/
 __pycache__/
 \#*\#
 .*
 !.git*
 *~
 *.bak
+*.new
 *.sw[op]
 *.py[co]
+*.info
 

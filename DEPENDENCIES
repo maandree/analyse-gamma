@@ -5,7 +5,7 @@ RUNTIME DEPENDENCIES:
 
 BUILD DEPENDENCIES:
 
-	(does not require building)
+	texinfo (opt-out: for info, pdf, dvi and info manual)
 
 INSTALL DEPENDENCIES:
 
